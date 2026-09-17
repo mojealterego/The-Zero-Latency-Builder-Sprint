@@ -124,12 +124,12 @@ src/
   unit/
   integration/
   benchmarks/
-benchmarks/
   retrieval_dataset.jsonl
-  README.md
 ```
 
 ## Benchmark Protocol
+
+See [`BENCHMARK_PROTOCOL.md`](BENCHMARK_PROTOCOL.md) for the reproducible commands, required metadata, and interpretation constraints.
 
 - Freeze a representative corpus and labeled query set; publish corpus size, language distribution, and query classes.
 - Measure index build time, resident memory, ingest throughput, and query p50/p95/p99.
@@ -177,7 +177,8 @@ The architecture targets developers building voice interfaces, collaborative AI 
 
 ## Current Evidence Status
 
-- Repository metadata has been inspected for the target repository; it is public and currently reports size 0.
-- A complete source-level audit of the candidate repositories has not yet been completed.
-- No benchmark has been run; no sub-10 ms result is claimed.
+- Rust crate now has a deterministic lexical selector, policy gate, in-memory replay ledger, runtime module, and synthetic retrieval benchmark.
+- `src/lib.rs` formatting and test layout were normalized in the latest source commit; CI is responsible for validating the change.
+- The benchmark protocol is documented in `BENCHMARK_PROTOCOL.md`.
+- A previous local synthetic run reported by the user is not evidence of production or end-to-end latency.
 - No Moss SDK integration is claimed until the official API contract is verified.
