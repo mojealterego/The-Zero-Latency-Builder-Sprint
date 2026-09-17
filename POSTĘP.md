@@ -6,10 +6,10 @@
 
 ## Stan bazowy
 
-- Rust crate, CLI i leksykalny selektor są zapisane w repozytorium.
+- Rust crate, CLI, leksykalny selektor, policy gate, in-memory replay ledger i pipeline decyzja→audyt są zapisane w repozytorium.
 - W terminalu użytkownika wykonano syntetyczny benchmark: 1 000 rekordów/iteracji, mean 70 226 ns, p50 68 337 ns, p95 75 497 ns, p99 128 796 ns. To nie jest wynik produkcyjny ani end-to-end.
-- Wcześniejszy GitHub Actions run zakończył się failure na kroku testów; przyczyna nie została potwierdzona z logów.
-- Użytkownik uruchomił `cargo bench --bench retrieval`; na zrzucie widać zakończenie benchmarku i powyższe wyniki.
+- Najnowszy sprawdzony GitHub Actions run: [Rust CI #36](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/actions/runs/35257068499), commit `ceab42df7a33602b1f9bee1328b5247e8b31d5c9`, zakończony **success**. Kroki formatowania i „Run tests and build all targets” zakończone powodzeniem.
+- Po tym runie zaktualizowano dokumentację (`README.md` i ten plik); powyższy CI nie obejmuje tych późniejszych commitów.
 - Moss, Zenoh, trwały event log i integracja end-to-end pozostają niezaimplementowane.
 
 ## Wykonane etapy
@@ -20,7 +20,7 @@
 
 ### 2. Dodano testy regresji jakości retrieval
 
-`tests/retrieval_quality.rs` sprawdza oczekiwany top-2, odrzucanie dokumentu niepowiązanego i limit top-k. Testy zapisane; wynik wymaga CI.
+`tests/retrieval_quality.rs` sprawdza oczekiwany top-2, odrzucanie dokumentu niepowiązanego i limit top-k. CI #36 zakończył się powodzeniem.
 
 ### 3. Zapisano kontrakt replay/audytu
 
@@ -48,11 +48,15 @@
 
 ### 9. Dodano GitHub Actions dla Rust
 
-`.github/workflows/rust.yml` wykonuje `cargo fmt --all -- --check`, `cargo test --all-targets` i `cargo clippy --all-targets -- -D warnings` dla push/PR do `main`. Wynik workflow wymaga sprawdzenia.
+`.github/workflows/rust.yml` wykonuje `cargo fmt --all -- --check`, `cargo test --all-targets` i `cargo clippy --all-targets -- -D warnings` dla push/PR do `main`. Najnowszy sprawdzony run #36 przeszedł formatowanie i testy/build wszystkich targetów.
 
 ### 10. Dodano policy → audit pipeline
 
-`src/runtime.rs` łączy decyzję `authorize` z zapisem zdarzenia w `ReplayLedger`. Zapisuje także odmowy. Nie wykonuje narzędzi ani efektów zewnętrznych. Dodano testy dla odmowy i dozwolonej akcji; nie deklarujemy ich zaliczenia bez uruchomienia Cargo/CI.
+`src/runtime.rs` łączy decyzję `authorize` z zapisem zdarzenia w `ReplayLedger`. Zapisuje także odmowy. Nie wykonuje narzędzi ani efektów zewnętrznych. Testy są objęte zielonym runem CI #36.
+
+### 11. Uaktualniono dokumentację stanu
+
+`README.md` odróżnia już prototypowe elementy istniejące od brakującej integracji Moss, transportu, trwałości i pomiarów end-to-end.
 
 ## Benchmark — interpretacja
 
@@ -61,6 +65,7 @@ Widoczny wynik pochodzi z syntetycznego, jednowątkowego benchmarku leksykalnego
 ## Linki
 
 - [Repozytorium](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint)
+- [README](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/README.md)
 - [Rust library](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/src/lib.rs)
 - [CLI demo](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/src/main.rs)
 - [Policy gate](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/src/policy.rs)
@@ -70,10 +75,11 @@ Widoczny wynik pochodzi z syntetycznego, jednowątkowego benchmarku leksykalnego
 - [Rust CI workflow](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/.github/workflows/rust.yml)
 - [GitHub Actions](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/actions)
 
-## Następne działania
+## Następne działania — blokery do ukończenia produktu
 
-1. Sprawdzić najnowszy run Actions i naprawić ewentualne błędy formatowania/testów/Clippy.
-2. Dodać trwałość event logu i testy restart/replay, bez powtarzania efektów zewnętrznych.
-3. Powiązać zatwierdzenie z kanonicznym hashem dokładnego żądania (akcja + argumenty + zakres), nie tylko z flagą boolean.
-4. Zweryfikować oficjalne API Moss i zbudować adapter dopiero po potwierdzeniu pakietu, wersji, uwierzytelniania i kontraktów.
-5. Zmierzyć jakość retrieval (Recall@k/MRR) i latency end-to-end na opisanym sprzęcie, przy jawnych warunkach warm/cold i współbieżności.
+1. Dodać trwałość event logu i testy restart/replay, bez powtarzania efektów zewnętrznych.
+2. Powiązać zatwierdzenie z kanonicznym hashem dokładnego żądania (akcja + argumenty + zakres), nie tylko z flagą boolean.
+3. Zweryfikować oficjalne API Moss i zbudować adapter dopiero po potwierdzeniu pakietu, wersji, uwierzytelniania i kontraktów.
+4. Zmierzyć jakość retrieval (Recall@k/MRR) i latency end-to-end na opisanym sprzęcie, przy jawnych warunkach warm/cold i współbieżności.
+5. Dopiero po weryfikacji wymagań zdecydować, czy Zenoh i optymalizacje typu ArcSwap/hash indexing mają uzasadnienie pomiarowe.
+6. Uruchomić ponownie CI po zmianach dokumentacyjnych i każdym kolejnym commicie.
