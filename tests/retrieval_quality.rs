@@ -2,10 +2,22 @@ use zero_latency_builder::{select_context, ContextRecord};
 
 fn fixture() -> Vec<ContextRecord> {
     vec![
-        ContextRecord { id: "noise".into(), text: "unrelated gardening notes".into() },
-        ContextRecord { id: "design".into(), text: "local context retrieval design".into() },
-        ContextRecord { id: "runtime".into(), text: "Rust runtime and local retrieval".into() },
-        ContextRecord { id: "policy".into(), text: "tool execution policy and approvals".into() },
+        ContextRecord {
+            id: "noise".into(),
+            text: "unrelated gardening notes".into(),
+        },
+        ContextRecord {
+            id: "design".into(),
+            text: "local context retrieval design".into(),
+        },
+        ContextRecord {
+            id: "runtime".into(),
+            text: "Rust runtime and local retrieval".into(),
+        },
+        ContextRecord {
+            id: "policy".into(),
+            text: "tool execution policy and approvals".into(),
+        },
     ]
 }
 
