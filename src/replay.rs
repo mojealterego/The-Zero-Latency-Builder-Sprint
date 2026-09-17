@@ -127,4 +127,29 @@ mod tests {
             Err(RecordError::EmptyIdempotencyKey)
         );
     }
+
+    #[test]
+    fn rejected_records_leave_events_and_indexes_unchanged() {
+        let mut ledger = ReplayLedger::default();
+        ledger.record(event("e1", "k1")).unwrap();
+        let before = ledger.replay();
+
+        assert_eq!(
+            ledger.record(event("e1", "k2")),
+            Err(RecordError::DuplicateEventId)
+        );
+        assert_eq!(
+            ledger.record(event("e2", "k1")),
+            Err(RecordError::IdempotencyConflict)
+        );
+        assert_eq!(
+            ledger.record(event("e3", " ")),
+            Err(RecordError::EmptyIdempotencyKey)
+        );
+
+        assert_eq!(ledger.len(), 1);
+        assert_eq!(ledger.replay(), before);
+        assert_eq!(ledger.record(event("e2", "k2")), Ok(()));
+        assert_eq!(ledger.len(), 2);
+    }
 }
