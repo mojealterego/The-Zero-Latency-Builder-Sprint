@@ -27,11 +27,7 @@ fn tokenize(input: &str) -> BTreeSet<String> {
 /// Rank records by the number of distinct query terms found in each record.
 /// Matching uses whole tokens. Ties are resolved by record ID, deterministically.
 /// `limit` bounds output; records with no matching terms are omitted.
-pub fn select_context(
-    query: &str,
-    records: &[ContextRecord],
-    limit: usize,
-) -> Vec<RankedRecord> {
+pub fn select_context(query: &str, records: &[ContextRecord], limit: usize) -> Vec<RankedRecord> {
     if limit == 0 {
         return Vec::new();
     }
