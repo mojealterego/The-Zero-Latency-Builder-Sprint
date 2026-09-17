@@ -30,6 +30,25 @@ Ryzyka wymagające testów/naprawy przed użyciem:
 
 Macierz rekomenduje testy m.in. dla błędnych danych, rozbieżności tożsamości, opt-out, nieznanych akcji ubocznych, replay/kolizji idempotencyjnej oraz zmian wersji polityki.
 
+## Etap 3 — Minimalny szkielet Rust i lokalny retrieval
+
+**Status: pliki zapisane na `main`; kompilacja/testy nieuruchomione w tym środowisku.**
+
+Dodano:
+
+- `Cargo.toml` — minimalny crate Rust, bez zewnętrznych zależności.
+- `src/lib.rs` — typy `ContextRecord`/`RankedRecord` i deterministyczny leksykalny selektor kontekstu: liczy dopasowane unikalne terminy, rozstrzyga remisy po ID, ogranicza wynik parametrem `limit`.
+- `src/main.rs` — CLI demonstrator z małym, wbudowanym korpusem; przyjmuje zapytanie z argumentów.
+
+Testy jednostkowe zapisane w `src/lib.rs`: ranking, deterministyczne remisy, limit zerowy i brak dopasowania. **To są testy w kodzie, nie potwierdzenie ich wykonania.**
+
+Ograniczenia i ryzyka:
+
+- To bazowy lexical matching, nie BM25, nie semantyczne wyszukiwanie i nie integracja Moss.
+- Brak Zenoh, SQLite, trwałego event logu, warstwy polityk i telemetryki.
+- Nie zmierzono latency; brak podstaw do deklaracji 1 ms / sub-10 ms.
+- W tej sesji nie było lokalnego środowiska kompilacji/testów; potrzebny `cargo test` i `cargo run -- "local context"` w środowisku z Rust.
+
 ## Decyzje architektoniczne robocze
 
 - Rust + Zenoh pozostaje kierunkiem do zweryfikowania, a nie gotową implementacją.
@@ -41,21 +60,21 @@ Macierz rekomenduje testy m.in. dla błędnych danych, rozbieżności tożsamoś
 
 | Obszar | Stan |
 |---|---|
-| Repozytorium i dokumenty | Odczytane częściowo: README2, przegląd bezpieczeństwa, macierz komponentów |
-| Kod sprintu | Nie zmodyfikowano w tym etapie |
-| Integracja Moss | Niepotwierdzona |
-| Rust/Zenoh | Niezaimplementowane i niezmierzone |
-| Testy | Nieuruchomione |
+| Repozytorium i dokumenty | Odczytane: README2, przegląd bezpieczeństwa, macierz komponentów |
+| Rust crate | Dodano manifest, bibliotekę i CLI; kompilacja niezweryfikowana |
+| Unit tests | Zapisano 4 testy; nieuruchomione |
+| Moss | Niezaimplementowany; API/wersja do weryfikacji |
+| Zenoh | Niezaimplementowane |
+| Trwałość/audyt/replay | Niezaimplementowane |
 | Benchmark p50/p95/p99 | Brak |
-| Commit | Utworzenie tego pliku jest pierwszą zmianą w repozytorium; SHA potwierdza odpowiedź GitHub po zapisie |
 
 ## Następne kroki
 
-1. Sprawdzić aktualne drzewo repozytorium i historię, by ustalić, czy poza dokumentami istnieje kod lub workflow.
-2. Zweryfikować oficjalne wymagania sprintu i dokładny interfejs/API Moss.
-3. Wybrać minimalny, mierzalny vertical slice zgodny z faktycznym stanem repozytorium.
-4. Implementować etapami; po każdym etapie dopisać datę, pliki, testy i wynik do tego dziennika.
-5. Dodać reprodukowalny benchmark i raportować wyłącznie zmierzone wyniki wraz z warunkami.
+1. Uruchomić `cargo test` i naprawić ewentualne błędy kompilacji/testów.
+2. Dodać reproducible benchmark lokalnego selektora z raportem p50/p95/p99 i opisem sprzętu/korpusu.
+3. Zweryfikować oficjalne wymagania sprintu i API Moss, po czym dodać adapter rzeczywiście wywołujący Moss.
+4. Dodać kontrakt zdarzenia i deterministyczny replay; następnie bramkę polityki dla kontrolowanego narzędzia.
+5. Dodać Zenoh tylko dla uzasadnionej ścieżki komunikacyjnej i zmierzyć osobno koszt transportu.
 
 ---
 
