@@ -29,8 +29,8 @@ fn main() {
             ),
         })
         .collect();
-    let query = std::env::var("BENCH_QUERY")
-        .unwrap_or_else(|_| "local retrieval topic-7".to_string());
+    let query =
+        std::env::var("BENCH_QUERY").unwrap_or_else(|_| "local retrieval topic-7".to_string());
 
     for _ in 0..warmup_iterations {
         std::hint::black_box(select_context(&query, &records, top_k));
