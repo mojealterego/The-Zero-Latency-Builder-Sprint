@@ -43,6 +43,7 @@ impl ReplayLedger {
                 return Err(RecordError::IdempotencyConflict);
             }
         }
+
         let index = self.events.len();
         self.event_ids.insert(event.event_id.clone(), index);
         self.idempotency
@@ -117,7 +118,10 @@ mod tests {
     #[test]
     fn rejects_empty_identifiers() {
         let mut ledger = ReplayLedger::default();
-        assert_eq!(ledger.record(event(" ", "k")), Err(RecordError::EmptyEventId));
+        assert_eq!(
+            ledger.record(event(" ", "k")),
+            Err(RecordError::EmptyEventId)
+        );
         assert_eq!(
             ledger.record(event("e", " ")),
             Err(RecordError::EmptyIdempotencyKey)
