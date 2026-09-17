@@ -49,24 +49,51 @@ mod tests {
 
     #[test]
     fn exact_allowlist_only() {
-        assert_eq!(authorize("messages.send", ALLOW, false, false, ExecutionMode::Live), Decision::AllowLive);
-        assert_eq!(authorize("admin.messages.send", ALLOW, false, true, ExecutionMode::Live), Decision::DenyUnknownAction);
+        assert_eq!(
+            authorize("messages.send", ALLOW, false, false, ExecutionMode::Live),
+            Decision::AllowLive
+        );
+        assert_eq!(
+            authorize(
+                "admin.messages.send",
+                ALLOW,
+                false,
+                true,
+                ExecutionMode::Live
+            ),
+            Decision::DenyUnknownAction
+        );
     }
 
     #[test]
     fn rejects_blank_action_even_if_allowlist_contains_blank() {
-        assert_eq!(authorize(" ", &[" "], false, true, ExecutionMode::Live), Decision::DenyUnknownAction);
-        assert_eq!(authorize("", ALLOW, false, true, ExecutionMode::Live), Decision::DenyUnknownAction);
+        assert_eq!(
+            authorize(" ", &[" "], false, true, ExecutionMode::Live),
+            Decision::DenyUnknownAction
+        );
+        assert_eq!(
+            authorize("", ALLOW, false, true, ExecutionMode::Live),
+            Decision::DenyUnknownAction
+        );
     }
 
     #[test]
     fn live_external_action_requires_approval() {
-        assert_eq!(authorize("messages.send", ALLOW, true, false, ExecutionMode::Live), Decision::DenyApprovalRequired);
-        assert_eq!(authorize("messages.send", ALLOW, true, true, ExecutionMode::Live), Decision::AllowLive);
+        assert_eq!(
+            authorize("messages.send", ALLOW, true, false, ExecutionMode::Live),
+            Decision::DenyApprovalRequired
+        );
+        assert_eq!(
+            authorize("messages.send", ALLOW, true, true, ExecutionMode::Live),
+            Decision::AllowLive
+        );
     }
 
     #[test]
     fn dry_run_never_requires_live_approval() {
-        assert_eq!(authorize("messages.send", ALLOW, true, false, ExecutionMode::DryRun), Decision::AllowDryRun);
+        assert_eq!(
+            authorize("messages.send", ALLOW, true, false, ExecutionMode::DryRun),
+            Decision::AllowDryRun
+        );
     }
 }
