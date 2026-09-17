@@ -1,10 +1,6 @@
-name: Rust CI
+name: Legacy Rust CI (manual)
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,8 +18,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Format Rust sources
-        run: cargo fmt --all
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
 
       - name: Run tests and build all targets
         run: cargo test --all-targets
