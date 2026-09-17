@@ -23,8 +23,13 @@ pub fn authorize(
     approval_granted: bool,
     mode: ExecutionMode,
 ) -> Decision {
-    // Exact matching avoids namespace/prefix bypasses such as `x.send`.
-    if !allowed_actions.iter().any(|allowed| *allowed == action) {
+    // Reject blank identifiers before consulting configuration. Exact matching
+    // avoids namespace/prefix bypasses such as `x.send`.
+    if action.trim().is_empty()
+        || !allowed_actions
+            .iter()
+            .any(|allowed| !allowed.trim().is_empty() && *allowed == action)
+    {
         return Decision::DenyUnknownAction;
     }
     if mode == ExecutionMode::DryRun {
@@ -46,6 +51,12 @@ mod tests {
     fn exact_allowlist_only() {
         assert_eq!(authorize("messages.send", ALLOW, false, false, ExecutionMode::Live), Decision::AllowLive);
         assert_eq!(authorize("admin.messages.send", ALLOW, false, true, ExecutionMode::Live), Decision::DenyUnknownAction);
+    }
+
+    #[test]
+    fn rejects_blank_action_even_if_allowlist_contains_blank() {
+        assert_eq!(authorize(" ", &[" "], false, true, ExecutionMode::Live), Decision::DenyUnknownAction);
+        assert_eq!(authorize("", ALLOW, false, true, ExecutionMode::Live), Decision::DenyUnknownAction);
     }
 
     #[test]
