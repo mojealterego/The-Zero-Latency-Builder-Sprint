@@ -4,101 +4,47 @@
 **Repozytorium:** https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint  
 **Zasada raportowania:** rozróżniamy stan potwierdzony, propozycje i zadania niewykonane. Brak pomiaru/testu nie jest wynikiem pozytywnym.
 
-## Etap 1 — Rozpoznanie dokumentacji repozytorium
+## Stan bazowy
 
-**Status: wykonano — przegląd dokumentacji źródłowej, bez uruchamiania kodu.**
+- Rust crate, CLI i leksykalny selektor są zapisane w repozytorium.
+- W terminalu użytkownika wykonano syntetyczny benchmark: 1 000 rekordów/iteracji, mean 70 226 ns, p50 68 337 ns, p95 75 497 ns, p99 128 796 ns. To nie jest wynik produkcyjny ani end-to-end.
+- Workflow `.github/workflows/rust-ci.yml` uruchamia testy i benchmark; jego aktualnego wyniku nie potwierdzono w tej aktualizacji.
+- Moss, Zenoh, trwały event log, runtime policy gate i rzeczywisty replay pozostają niezaimplementowane.
 
-- Potwierdzono, że repozytorium jest publiczne, gałąź domyślna `main`.
-- Przejrzano `README2.md`: opisuje architekturę jako propozycję; deklaruje, że pomiary wydajności i integracja Moss nie są potwierdzone.
-- Przejrzano `RUNTIME-SECURITY-REVIEW.md`: to przegląd źródeł komponentów z `Nowe-projekty`; testy nie były uruchomione. Nie należy traktować tych komponentów jako już zintegrowanych z repozytorium sprintu.
-- Odczytano `SOURCE-COMPONENT-MATRIX.md`; szczegóły poniżej.
+## Wykonano teraz — 5 zadań
 
-## Etap 2 — Analiza macierzy komponentów źródłowych
+### 1. Ulepszono benchmark
 
-**Status: wykonano — wnioski oparte na inspekcji źródeł opisanej w macierzy.**
+`benches/retrieval.rs` ma teraz rozgrzewkę i konfigurowalne zmienne środowiskowe: `BENCH_RECORDS`, `BENCH_WARMUP`, `BENCH_ITERATIONS`, `BENCH_TOP_K`, `BENCH_QUERY`. Raportuje średnią oraz p50/p95/p99 i jawnie opisuje ograniczenie syntetycznego microbenchmarku. Sprzęt i wersję Rust nadal trzeba dopisać do raportu przy uruchomieniu.
 
-Kandydat do pionowego wycinka: lokalny wybór kontekstu + kontrolowane wykonanie narzędzia + ślad audytowy/replay. Macierz wskazuje istniejące komponenty w osobnym repozytorium `Nowe-projekty`, nie w bieżącym repozytorium sprintu.
+### 2. Dodano testy regresji jakości retrieval
 
-Ryzyka wymagające testów/naprawy przed użyciem:
+`tests/retrieval_quality.rs` sprawdza oczekiwany top-2, odrzucanie dokumentu niepowiązanego i twardy limit top-k. Są to testy zapisane w repo; nie twierdzę, że przeszły — wynik CI wymaga sprawdzenia.
 
-1. Nieprawidłowe daty faktur mogą propagować `NaN` do wyniku.
-2. Brak kontroli zgodności `invoice.customerId` z `history.customerId`.
-3. Walidacja adresu e-mail oparta tylko o obecność `@`.
-4. Funkcja wysyłki zwraca plan `approved_for_delivery`; nie wysyła wiadomości do zewnętrznego dostawcy.
-5. Wykrywanie destrukcyjnych akcji może ominąć nazwy z przestrzenią nazw, np. `collections.send_message`.
-6. Brak pełnej walidacji wejściowych wartości polityki (kształt danych, koszt skończony/nieujemny, dozwolony poziom ryzyka).
+### 3. Zapisano kontrakt replay/audytu
 
-Macierz rekomenduje testy m.in. dla błędnych danych, rozbieżności tożsamości, opt-out, nieznanych akcji ubocznych, replay/kolizji idempotencyjnej oraz zmian wersji polityki.
+`docs/REPLAY_AND_AUDIT.md` definiuje kopertę zdarzenia, sekwencjonowanie, kontrolę integralności, zasady replay bez wykonywania skutków ubocznych i testy akceptacyjne. To specyfikacja, nie gotowy event store.
 
-## Etap 3 — Minimalny szkielet Rust i lokalny retrieval
+### 4. Zapisano kontrakt polityki narzędzi
 
-**Status: pliki zapisane na `main`; kod benchmarku został uruchomiony w środowisku użytkownika, ale nie ma niezależnego logu CI.**
+`docs/TOOL_POLICY_CONTRACT.md` definiuje walidację allowlisty i schematu, decyzje allow/require_approval/deny, powiązanie akceptacji z hashem żądania, idempotency i fail-closed. To specyfikacja; runtime enforcement nie jest jeszcze zaimplementowany.
 
-Dodano:
+### 5. Zapisano bramkę integracji Moss
 
-- `Cargo.toml` — minimalny crate Rust, bez zewnętrznych zależności.
-- `src/lib.rs` — typy `ContextRecord`/`RankedRecord` i deterministyczny leksykalny selektor kontekstu: liczy dopasowane unikalne terminy, rozstrzyga remisy po ID, ogranicza wynik parametrem `limit`.
-- `src/main.rs` — CLI demonstrator z małym, wbudowanym korpusem; przyjmuje zapytanie z argumentów.
-- `benches/retrieval.rs` — syntetyczny benchmark lokalnego selektora.
+`docs/MOSS_ADAPTER_GATE.md` określa wąski wewnętrzny interfejs i checklistę weryfikacji oficjalnej dokumentacji, wersji SDK, lokalizacji danych, błędów i kryteriów akceptacji. Nie wpisano zmyślonych endpointów ani sygnatur. Integracja Moss nadal jest zablokowana do czasu weryfikacji oficjalnego API.
 
-W `src/lib.rs` zapisano 7 testów jednostkowych: ranking, deterministyczne remisy, limit zerowy, brak dopasowania, dopasowanie pełnych tokenów bez rozróżniania wielkości liter, deduplikacja terminów zapytania i puste zapytanie. Testy są zapisane w kodzie; nie mam potwierdzenia ich wykonania w CI.
+## Linki do zmian
 
-Użytkownik uruchomił `cargo bench --bench retrieval`. Zrzut terminala pokazuje zakończony benchmark: 1 000 rekordów, 1 000 iteracji, mean 70 226 ns, p50 68 337 ns, p95 75 497 ns, p99 128 796 ns. To syntetyczny microbenchmark jednego procesu, nie pomiar produkcyjnej ścieżki ani integracji Moss.
+- [Benchmark](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/benches/retrieval.rs)
+- [Testy jakości](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/tests/retrieval_quality.rs)
+- [Replay i audyt](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/docs/REPLAY_AND_AUDIT.md)
+- [Polityka narzędzi](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/docs/TOOL_POLICY_CONTRACT.md)
+- [Bramka Moss](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/docs/MOSS_ADAPTER_GATE.md)
 
-Ograniczenia:
+## Następne działania
 
-- To bazowy lexical matching, nie BM25, nie semantyczne wyszukiwanie i nie integracja Moss.
-- Brak Zenoh, SQLite, trwałego event logu, warstwy polityk i telemetryki.
-- Wyniki zależą od środowiska; należy zapisać sprzęt, wersję Rust, profil i dokładną komendę.
-
-## Etap 4 — CI dla Rust
-
-**Status: workflow dodany do `main`; jego uruchomienie i wynik nie zostały jeszcze zweryfikowane.**
-
-Dodano `.github/workflows/rust-ci.yml`, który na push do `main` i pull request uruchamia:
-
-1. `cargo test --locked`
-2. `cargo bench --bench retrieval`
-
-Workflow ma `contents: read`. Nie oznacza to jeszcze, że testy przechodzą — sprawdzić kartę Actions po uruchomieniu.
-
-## Decyzje architektoniczne robocze
-
-- Rust + Zenoh pozostaje kierunkiem do zweryfikowania, a nie gotową implementacją.
-- Moss musi być rzeczywiście użyty jako warstwa retrieval i mieć adapter oparty na zweryfikowanym API/wersji; nie wolno zastępować go samym transportem Zenoh.
-- Cel „1 ms” wymaga precyzyjnej granicy pomiaru i benchmarku. Nie jest obecnie potwierdzonym wynikiem.
-- Nie przedstawiać symulowanej wysyłki jako rzeczywistej dostawy.
-
-## Kolejne kroki — kolejność wykonania
-
-1. **Sprawdzić GitHub Actions** dla ostatniego commita: potwierdzić wynik `cargo test --locked` i benchmarku; naprawić błędy, jeśli wystąpią.
-2. **Zwiększyć wiarygodność benchmarku:** dodać rozgrzewkę, wielokrotne serie, raport środowiska i rozdzielić koszt tokenizacji od selekcji; zachować surowe wyniki.
-3. **Zweryfikować specyfikację hackathonu i oficjalne API Moss:** ustalić obowiązkowe użycie, SDK/wersję, sposób wywołania oraz format wejścia/wyjścia. Nie implementować adaptera na podstawie zgadywania.
-4. **Zbudować adapter Moss za interfejsem:** jawny timeout, limit wyników i tokenów, obsługa błędów, testy kontraktowe; lokalny lexical fallback musi być oznaczony jako fallback.
-5. **Dodać mały zestaw jakości retrieval:** pytania + oczekiwane dokumenty, Recall@k/MRR oraz porównanie lexical vs Moss.
-6. **Dodać kontrakt zdarzenia i replay deterministyczny:** identyfikator, czas, typ, wejście, wersja polityki, wynik; testy powtórzeń i kolizji idempotencyjnej.
-7. **Dodać bramkę polityki przed wykonaniem narzędzia:** walidacja schematu, allowlist akcji, tryb dry-run, jawne potwierdzenie dla skutków zewnętrznych.
-8. **Dopiero potem rozważyć Zenoh/SQLite** na podstawie mierzalnej potrzeby; mierzyć oddzielnie retrieval, transport i pełny end-to-end.
-9. **Przygotować demo:** jeden scenariusz od zapytania do cytowanego kontekstu, z widocznym śladem i porównywalnymi pomiarami.
-
-## Stan wykonania
-
-| Obszar | Stan |
-|---|---|
-| Dokumentacja repozytorium | Odczytana |
-| Rust crate + CLI | Dodane; CI do weryfikacji |
-| Unit tests | 7 testów zapisanych; brak potwierdzonego wyniku CI |
-| Benchmark | Uruchomiony przez użytkownika; wyniki syntetyczne |
-| GitHub Actions | Workflow dodany; wynik niezweryfikowany |
-| Moss | Niezaimplementowany; API/wersja do weryfikacji |
-| Zenoh | Niezaimplementowane |
-| Trwałość/audyt/replay | Niezaimplementowane |
-| Benchmark end-to-end | Brak |
-
----
-
-## Źródła wewnętrzne
-
-- `README2.md`
-- `RUNTIME-SECURITY-REVIEW.md`
-- `SOURCE-COMPONENT-MATRIX.md`
+1. Sprawdzić wynik GitHub Actions po ostatnich commitach i naprawić ewentualne błędy kompilacji/testów.
+2. Uruchomić benchmark z zapisaniem `rustc --version`, OS/CPU/RAM i parametrów.
+3. Zweryfikować obowiązki hackathonu oraz aktualne oficjalne API Moss, po czym zrealizować adapter.
+4. Zaimplementować i przetestować policy gate oraz event log/replay — dokumenty same nie zapewniają ochrony.
+5. Dopiero po testach połączyć ścieżkę end-to-end i raportować osobno jakość oraz latency.
