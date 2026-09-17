@@ -11,6 +11,8 @@ path = "src/lib.rs"
 name = "zero-latency-builder"
 path = "src/main.rs"
 
+# Keep the double-bracket array-table syntax: Cargo requires [[bench]],
+# not [bench], to register a benchmark target.
 [[bench]]
 name = "retrieval"
 path = "benches/retrieval.rs"
