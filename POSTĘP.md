@@ -32,22 +32,35 @@ Macierz rekomenduje testy m.in. dla błędnych danych, rozbieżności tożsamoś
 
 ## Etap 3 — Minimalny szkielet Rust i lokalny retrieval
 
-**Status: pliki zapisane na `main`; kompilacja/testy nieuruchomione w tym środowisku.**
+**Status: pliki zapisane na `main`; kod benchmarku został uruchomiony w środowisku użytkownika, ale nie ma niezależnego logu CI.**
 
 Dodano:
 
 - `Cargo.toml` — minimalny crate Rust, bez zewnętrznych zależności.
 - `src/lib.rs` — typy `ContextRecord`/`RankedRecord` i deterministyczny leksykalny selektor kontekstu: liczy dopasowane unikalne terminy, rozstrzyga remisy po ID, ogranicza wynik parametrem `limit`.
 - `src/main.rs` — CLI demonstrator z małym, wbudowanym korpusem; przyjmuje zapytanie z argumentów.
+- `benches/retrieval.rs` — syntetyczny benchmark lokalnego selektora.
 
-Testy jednostkowe zapisane w `src/lib.rs`: ranking, deterministyczne remisy, limit zerowy i brak dopasowania. **To są testy w kodzie, nie potwierdzenie ich wykonania.**
+W `src/lib.rs` zapisano 7 testów jednostkowych: ranking, deterministyczne remisy, limit zerowy, brak dopasowania, dopasowanie pełnych tokenów bez rozróżniania wielkości liter, deduplikacja terminów zapytania i puste zapytanie. Testy są zapisane w kodzie; nie mam potwierdzenia ich wykonania w CI.
 
-Ograniczenia i ryzyka:
+Użytkownik uruchomił `cargo bench --bench retrieval`. Zrzut terminala pokazuje zakończony benchmark: 1 000 rekordów, 1 000 iteracji, mean 70 226 ns, p50 68 337 ns, p95 75 497 ns, p99 128 796 ns. To syntetyczny microbenchmark jednego procesu, nie pomiar produkcyjnej ścieżki ani integracji Moss.
+
+Ograniczenia:
 
 - To bazowy lexical matching, nie BM25, nie semantyczne wyszukiwanie i nie integracja Moss.
 - Brak Zenoh, SQLite, trwałego event logu, warstwy polityk i telemetryki.
-- Nie zmierzono latency; brak podstaw do deklaracji 1 ms / sub-10 ms.
-- W tej sesji nie było lokalnego środowiska kompilacji/testów; potrzebny `cargo test` i `cargo run -- "local context"` w środowisku z Rust.
+- Wyniki zależą od środowiska; należy zapisać sprzęt, wersję Rust, profil i dokładną komendę.
+
+## Etap 4 — CI dla Rust
+
+**Status: workflow dodany do `main`; jego uruchomienie i wynik nie zostały jeszcze zweryfikowane.**
+
+Dodano `.github/workflows/rust-ci.yml`, który na push do `main` i pull request uruchamia:
+
+1. `cargo test --locked`
+2. `cargo bench --bench retrieval`
+
+Workflow ma `contents: read`. Nie oznacza to jeszcze, że testy przechodzą — sprawdzić kartę Actions po uruchomieniu.
 
 ## Decyzje architektoniczne robocze
 
@@ -56,25 +69,31 @@ Ograniczenia i ryzyka:
 - Cel „1 ms” wymaga precyzyjnej granicy pomiaru i benchmarku. Nie jest obecnie potwierdzonym wynikiem.
 - Nie przedstawiać symulowanej wysyłki jako rzeczywistej dostawy.
 
+## Kolejne kroki — kolejność wykonania
+
+1. **Sprawdzić GitHub Actions** dla ostatniego commita: potwierdzić wynik `cargo test --locked` i benchmarku; naprawić błędy, jeśli wystąpią.
+2. **Zwiększyć wiarygodność benchmarku:** dodać rozgrzewkę, wielokrotne serie, raport środowiska i rozdzielić koszt tokenizacji od selekcji; zachować surowe wyniki.
+3. **Zweryfikować specyfikację hackathonu i oficjalne API Moss:** ustalić obowiązkowe użycie, SDK/wersję, sposób wywołania oraz format wejścia/wyjścia. Nie implementować adaptera na podstawie zgadywania.
+4. **Zbudować adapter Moss za interfejsem:** jawny timeout, limit wyników i tokenów, obsługa błędów, testy kontraktowe; lokalny lexical fallback musi być oznaczony jako fallback.
+5. **Dodać mały zestaw jakości retrieval:** pytania + oczekiwane dokumenty, Recall@k/MRR oraz porównanie lexical vs Moss.
+6. **Dodać kontrakt zdarzenia i replay deterministyczny:** identyfikator, czas, typ, wejście, wersja polityki, wynik; testy powtórzeń i kolizji idempotencyjnej.
+7. **Dodać bramkę polityki przed wykonaniem narzędzia:** walidacja schematu, allowlist akcji, tryb dry-run, jawne potwierdzenie dla skutków zewnętrznych.
+8. **Dopiero potem rozważyć Zenoh/SQLite** na podstawie mierzalnej potrzeby; mierzyć oddzielnie retrieval, transport i pełny end-to-end.
+9. **Przygotować demo:** jeden scenariusz od zapytania do cytowanego kontekstu, z widocznym śladem i porównywalnymi pomiarami.
+
 ## Stan wykonania
 
 | Obszar | Stan |
 |---|---|
-| Repozytorium i dokumenty | Odczytane: README2, przegląd bezpieczeństwa, macierz komponentów |
-| Rust crate | Dodano manifest, bibliotekę i CLI; kompilacja niezweryfikowana |
-| Unit tests | Zapisano 4 testy; nieuruchomione |
+| Dokumentacja repozytorium | Odczytana |
+| Rust crate + CLI | Dodane; CI do weryfikacji |
+| Unit tests | 7 testów zapisanych; brak potwierdzonego wyniku CI |
+| Benchmark | Uruchomiony przez użytkownika; wyniki syntetyczne |
+| GitHub Actions | Workflow dodany; wynik niezweryfikowany |
 | Moss | Niezaimplementowany; API/wersja do weryfikacji |
 | Zenoh | Niezaimplementowane |
 | Trwałość/audyt/replay | Niezaimplementowane |
-| Benchmark p50/p95/p99 | Brak |
-
-## Następne kroki
-
-1. Uruchomić `cargo test` i naprawić ewentualne błędy kompilacji/testów.
-2. Dodać reproducible benchmark lokalnego selektora z raportem p50/p95/p99 i opisem sprzętu/korpusu.
-3. Zweryfikować oficjalne wymagania sprintu i API Moss, po czym dodać adapter rzeczywiście wywołujący Moss.
-4. Dodać kontrakt zdarzenia i deterministyczny replay; następnie bramkę polityki dla kontrolowanego narzędzia.
-5. Dodać Zenoh tylko dla uzasadnionej ścieżki komunikacyjnej i zmierzyć osobno koszt transportu.
+| Benchmark end-to-end | Brak |
 
 ---
 
