@@ -36,7 +36,7 @@
 
 ### 6. Dodano wykonywalny policy gate
 
-`src/policy.rs` implementuje dokładne dopasowanie allowlisty, tryb `DryRun` oraz wymóg jawnego zatwierdzenia dla akcji oznaczonych jako wymagające zgody. Dodano testy jednostkowe. To lokalna funkcja decyzyjna.
+`src/policy.rs` implementuje dokładne dopasowanie allowlisty, tryb `DryRun` oraz wymóg jawnego zatwierdzenia dla akcji oznaczonych jako wymagające zgody. Sam gate nie wykonuje narzędzi.
 
 ### 7. Dodano in-memory replay ledger
 
@@ -44,13 +44,17 @@
 
 ### 8. Dodano CLI demo policy + audit
 
-`src/main.rs` wyświetla wyniki lokalnego retrieval, demonstruje decyzję `DryRun` dla jawnie dozwolonej akcji i zapisuje przykładowe zdarzenie do pamięciowego ledgeru. Demo nie wywołuje narzędzi zewnętrznych.
+`src/main.rs` pokazuje lokalny retrieval i demonstrację `DryRun` oraz wpis audytowy. Nie wywołuje narzędzi zewnętrznych.
 
 ### 9. Dodano GitHub Actions dla Rust
 
-`.github/workflows/rust.yml` wykonuje `cargo fmt --all -- --check`, `cargo test --all-targets` i `cargo clippy --all-targets -- -D warnings` dla push/PR do `main`. Workflow został zapisany; jego wynik nie został jeszcze potwierdzony.
+`.github/workflows/rust.yml` wykonuje `cargo fmt --all -- --check`, `cargo test --all-targets` i `cargo clippy --all-targets -- -D warnings` dla push/PR do `main`. Wynik workflow wymaga sprawdzenia.
 
-## Ważne: co oznacza benchmark
+### 10. Dodano policy → audit pipeline
+
+`src/runtime.rs` łączy decyzję `authorize` z zapisem zdarzenia w `ReplayLedger`. Zapisuje także odmowy. Nie wykonuje narzędzi ani efektów zewnętrznych. Dodano testy dla odmowy i dozwolonej akcji; nie deklarujemy ich zaliczenia bez uruchomienia Cargo/CI.
+
+## Benchmark — interpretacja
 
 Widoczny wynik pochodzi z syntetycznego, jednowątkowego benchmarku leksykalnego. Nie mierzy Moss, Zenoh, bazy trwałej, konkurencji, jakości semantycznej ani opóźnienia całej ścieżki aplikacji. Nie należy przedstawiać go jako dowodu „sub-10ms” całego produktu.
 
@@ -61,14 +65,15 @@ Widoczny wynik pochodzi z syntetycznego, jednowątkowego benchmarku leksykalnego
 - [CLI demo](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/src/main.rs)
 - [Policy gate](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/src/policy.rs)
 - [Replay ledger](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/src/replay.rs)
+- [Policy/audit pipeline](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/src/runtime.rs)
 - [Benchmark](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/benches/retrieval.rs)
 - [Rust CI workflow](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/blob/main/.github/workflows/rust.yml)
 - [GitHub Actions](https://github.com/mojealterego/The-Zero-Latency-Builder-Sprint/actions)
 
 ## Następne działania
 
-1. Sprawdzić nowy przebieg Actions i naprawić ewentualne błędy formatowania/testów/Clippy.
-2. Dodać trwałość event logu i testy restart/replay, bez ponawiania efektów zewnętrznych.
+1. Sprawdzić najnowszy run Actions i naprawić ewentualne błędy formatowania/testów/Clippy.
+2. Dodać trwałość event logu i testy restart/replay, bez powtarzania efektów zewnętrznych.
 3. Powiązać zatwierdzenie z kanonicznym hashem dokładnego żądania (akcja + argumenty + zakres), nie tylko z flagą boolean.
 4. Zweryfikować oficjalne API Moss i zbudować adapter dopiero po potwierdzeniu pakietu, wersji, uwierzytelniania i kontraktów.
 5. Zmierzyć jakość retrieval (Recall@k/MRR) i latency end-to-end na opisanym sprzęcie, przy jawnych warunkach warm/cold i współbieżności.
