@@ -1,0 +1,14 @@
+[package]
+name = "zero-latency-builder"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "zero_latency_builder"
+path = "src/lib.rs"
+
+[[bin]]
+name = "zero-latency-builder"
+path = "src/main.rs"
+
+[dependencies]
