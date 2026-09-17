@@ -2,18 +2,21 @@
 
 A prototype exploring low-latency, local-first context retrieval and reliable agent workflows for the **YC Fall 2026 × Moss: The Zero Latency Builder Sprint**.
 
-> **Status:** early Rust prototype. The repository does not yet contain a verified Moss integration, Zenoh transport, persistent event log, policy-gated tool execution, or production latency results. The project name and sprint goals are not measured performance claims.
+> **Status:** early Rust prototype. The repository does not yet contain a verified Moss integration, Zenoh transport, persistent event log, live tool execution, or production latency results. The project name and sprint goals are not measured performance claims.
 
 ## What exists today
 
 - Rust crate (`zero-latency-builder`, edition 2021).
 - Deterministic lexical context selection in `src/lib.rs`.
 - CLI demonstration in `src/main.rs` using a small embedded synthetic corpus.
-- Unit tests covering core retrieval behavior.
-- Synthetic microbenchmark in `benches/retrieval.rs` reporting mean and p50/p95/p99 for a 1,000-record corpus over 1,000 iterations.
-- GitHub Actions workflow checking Rust formatting and running tests.
+- In-memory policy gate (`src/policy.rs`) using exact allowlist matching and a dry-run/live decision enum.
+- In-memory replay ledger (`src/replay.rs`) that records events and rejects duplicate event IDs or idempotency-key reuse.
+- Runtime wiring (`src/runtime.rs`) that authorizes and records decisions; it deliberately does not invoke external tools.
+- Unit tests covering retrieval, policy, replay, and decision recording.
+- Synthetic microbenchmark in `benches/retrieval.rs` reporting mean and p50/p95/p99 for a configurable synthetic corpus.
+- GitHub Actions workflow checking Rust formatting and running tests/builds.
 
-The selector is a **lexical baseline**, not semantic search or BM25. It is not currently backed by a persistent index.
+The selector is a **lexical baseline**, not semantic search or BM25. It is not currently backed by a persistent index. The replay ledger is process-local and is not durable across restarts.
 
 ## Requirements
 
@@ -57,7 +60,7 @@ Run tests across targets:
 cargo test --all-targets
 ```
 
-Run both before submitting changes. The GitHub Actions workflow runs formatting and tests on pushes and pull requests targeting `main`, and supports manual dispatch.
+The GitHub Actions workflow runs formatting and tests/builds on pushes and pull requests targeting `main`, and supports manual dispatch. Check the linked run for the exact commit and result.
 
 ## Microbenchmark
 
@@ -66,6 +69,8 @@ Run the standalone benchmark:
 ```bash
 cargo bench --bench retrieval
 ```
+
+Optional environment variables: `BENCH_RECORDS`, `BENCH_WARMUP`, `BENCH_ITERATIONS`, `BENCH_TOP_K`, and `BENCH_QUERY`.
 
 It measures only the in-process lexical selector against synthetic in-memory records. It is not an end-to-end agent benchmark and does not measure Moss, transport, storage, or tool execution.
 
@@ -77,7 +82,7 @@ When recording results, include:
 - query, top-k, iteration count, and warm/cold conditions;
 - mean, p50, p95, and p99, plus any relevant outliers.
 
-Do not compare numbers from different environments as if they were directly equivalent. No latency result is currently claimed by this README; capture the actual command output before publishing measurements.
+Do not compare numbers from different environments as if they were directly equivalent. Capture actual command output before publishing measurements.
 
 ## Architecture and implementation status
 
@@ -85,12 +90,15 @@ Do not compare numbers from different environments as if they were directly equi
 |---|---|
 | Rust lexical retrieval baseline | Implemented as a prototype |
 | CLI demo | Implemented with embedded sample records |
-| Unit tests and formatting CI | Configured; inspect the latest GitHub Actions run for its result |
-| Synthetic retrieval benchmark | Added; benchmark output still needs to be captured and documented |
+| Exact-allowlist policy gate | Implemented as an in-memory decision prototype; no external action execution |
+| Replay ledger | Implemented in memory; not durable and does not replay side effects |
+| Decision-to-audit wiring | Implemented; records decisions only |
+| Unit tests and formatting/build CI | Configured; inspect the latest GitHub Actions run for its result |
+| Synthetic retrieval benchmark | Added; results must be captured on a documented environment |
 | Moss retrieval adapter | Not implemented; verify the official API and version before integration |
 | Zenoh transport | Not implemented |
-| Persistent storage, event log, and replay | Not implemented |
-| Policy-gated tool execution | Not implemented |
+| Persistent storage/event log | Not implemented |
+| Live policy-gated tool execution | Not implemented |
 | End-to-end latency and retrieval-quality evaluation | Not measured |
 
 ## Engineering principles
@@ -106,8 +114,8 @@ Do not compare numbers from different environments as if they were directly equi
 
 1. Capture and document a reproducible baseline benchmark.
 2. Verify sprint requirements and the official Moss API, then implement and test a real retrieval adapter.
-3. Define a versioned event contract and deterministic replay tests.
-4. Add policy-gated tool execution with explicit authorization and idempotency behavior.
+3. Define a versioned, durable event contract and deterministic replay tests.
+4. Harden policy-gated tool execution with explicit authorization, approval binding, idempotency, and side-effect semantics.
 5. Evaluate transport options, including Zenoh if justified, and measure their overhead separately.
 6. Run retrieval-quality and end-to-end evaluations before making performance claims.
 
