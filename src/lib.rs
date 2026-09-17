@@ -1,6 +1,9 @@
 //! Minimal deterministic local context selector for the sprint prototype.
 //! This is a lexical baseline, not Moss integration or semantic search.
 
+pub mod policy;
+pub mod replay;
+
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,14 +27,12 @@ fn tokenize(input: &str) -> BTreeSet<String> {
         .collect()
 }
 
-/// Rank records by the number of distinct query terms found in each record.
-/// Matching uses whole tokens. Ties are resolved by record ID, deterministically.
-/// `limit` bounds output; records with no matching terms are omitted.
+/// Rank records by distinct query terms found in each record.
+/// Matching uses whole tokens. Ties are resolved by record ID.
 pub fn select_context(query: &str, records: &[ContextRecord], limit: usize) -> Vec<RankedRecord> {
     if limit == 0 {
         return Vec::new();
     }
-
     let terms = tokenize(query);
     if terms.is_empty() {
         return Vec::new();
@@ -61,38 +62,23 @@ mod tests {
 
     fn corpus() -> Vec<ContextRecord> {
         vec![
-            ContextRecord {
-                id: "b".into(),
-                text: "Rust local retrieval runtime".into(),
-            },
-            ContextRecord {
-                id: "a".into(),
-                text: "Local context selection".into(),
-            },
-            ContextRecord {
-                id: "c".into(),
-                text: "Unrelated material".into(),
-            },
+            ContextRecord { id: "b".into(), text: "Rust local retrieval runtime".into() },
+            ContextRecord { id: "a".into(), text: "Local context selection".into() },
+            ContextRecord { id: "c".into(), text: "Unrelated material".into() },
         ]
     }
 
     #[test]
     fn ranks_by_distinct_matching_terms() {
         let result = select_context("local rust", &corpus(), 10);
-        assert_eq!(
-            result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
-            vec!["b", "a"]
-        );
+        assert_eq!(result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec!["b", "a"]);
         assert_eq!(result[0].score, 2);
     }
 
     #[test]
     fn ties_are_deterministic_by_id() {
         let result = select_context("local", &corpus(), 10);
-        assert_eq!(
-            result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
-            vec!["a", "b"]
-        );
+        assert_eq!(result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec!["a", "b"]);
     }
 
     #[test]
@@ -108,14 +94,8 @@ mod tests {
     #[test]
     fn matching_is_case_insensitive_and_uses_whole_tokens() {
         let records = vec![
-            ContextRecord {
-                id: "partial".into(),
-                text: "locality".into(),
-            },
-            ContextRecord {
-                id: "exact".into(),
-                text: "LOCAL context".into(),
-            },
+            ContextRecord { id: "partial".into(), text: "locality".into() },
+            ContextRecord { id: "exact".into(), text: "LOCAL context".into() },
         ];
         let result = select_context("local", &records, 10);
         assert_eq!(result.len(), 1);
