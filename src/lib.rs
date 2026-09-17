@@ -63,23 +63,38 @@ mod tests {
 
     fn corpus() -> Vec<ContextRecord> {
         vec![
-            ContextRecord { id: "b".into(), text: "Rust local retrieval runtime".into() },
-            ContextRecord { id: "a".into(), text: "Local context selection".into() },
-            ContextRecord { id: "c".into(), text: "Unrelated material".into() },
+            ContextRecord {
+                id: "b".into(),
+                text: "Rust local retrieval runtime".into(),
+            },
+            ContextRecord {
+                id: "a".into(),
+                text: "Local context selection".into(),
+            },
+            ContextRecord {
+                id: "c".into(),
+                text: "Unrelated material".into(),
+            },
         ]
     }
 
     #[test]
     fn ranks_by_distinct_matching_terms() {
         let result = select_context("local rust", &corpus(), 10);
-        assert_eq!(result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec!["b", "a"]);
+        assert_eq!(
+            result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+            vec!["b", "a"]
+        );
         assert_eq!(result[0].score, 2);
     }
 
     #[test]
     fn ties_are_deterministic_by_id() {
         let result = select_context("local", &corpus(), 10);
-        assert_eq!(result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), vec!["a", "b"]);
+        assert_eq!(
+            result.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
+            vec!["a", "b"]
+        );
     }
 
     #[test]
@@ -95,8 +110,14 @@ mod tests {
     #[test]
     fn matching_is_case_insensitive_and_uses_whole_tokens() {
         let records = vec![
-            ContextRecord { id: "partial".into(), text: "locality".into() },
-            ContextRecord { id: "exact".into(), text: "LOCAL context".into() },
+            ContextRecord {
+                id: "partial".into(),
+                text: "locality".into(),
+            },
+            ContextRecord {
+                id: "exact".into(),
+                text: "LOCAL context".into(),
+            },
         ];
         let result = select_context("local", &records, 10);
         assert_eq!(result.len(), 1);
