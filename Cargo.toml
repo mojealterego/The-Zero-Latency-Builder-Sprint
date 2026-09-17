@@ -11,4 +11,9 @@ path = "src/lib.rs"
 name = "zero-latency-builder"
 path = "src/main.rs"
 
+[[bench]]
+name = "retrieval"
+path = "benches/retrieval.rs"
+harness = false
+
 [dependencies]
