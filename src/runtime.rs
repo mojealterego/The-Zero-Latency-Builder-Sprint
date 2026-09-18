@@ -76,7 +76,8 @@ mod tests {
                 approval_granted: false,
                 mode: ExecutionMode::Live,
             },
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(decision, Decision::DenyUnknownAction);
         assert_eq!(ledger.replay().len(), 1);
         assert_eq!(ledger.replay()[0].outcome, "deny_unknown_action");
@@ -97,7 +98,8 @@ mod tests {
                 approval_granted: true,
                 mode: ExecutionMode::Live,
             },
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(decision, Decision::AllowLive);
         assert_eq!(ledger.replay()[0].outcome, "allow_live");
     }
