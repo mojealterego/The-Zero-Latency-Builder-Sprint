@@ -10,13 +10,13 @@ A prototype exploring low-latency, local-first context retrieval and reliable ag
 - Deterministic lexical context selection in `src/lib.rs`.
 - CLI demonstration in `src/main.rs` using a small embedded synthetic corpus.
 - In-memory policy gate (`src/policy.rs`) using exact allowlist matching and a dry-run/live decision enum.
-- In-memory replay ledger (`src/replay.rs`) that records events and rejects duplicate event IDs or idempotency-key reuse.
+- In-memory replay ledger (`src/replay.rs`) that trims event IDs and idempotency keys before validation/indexing, rejects duplicate canonical event IDs and idempotency-key reuse, and returns a read-only cloned audit sequence.
 - Runtime wiring (`src/runtime.rs`) that authorizes and records decisions; it deliberately does not invoke external tools.
 - Unit tests covering retrieval, policy, replay, and decision recording.
 - Synthetic microbenchmark in `benches/retrieval.rs` reporting mean and p50/p95/p99 for a configurable synthetic corpus.
 - GitHub Actions workflow checking Rust formatting and running tests/builds.
 
-The selector is a **lexical baseline**, not semantic search or BM25. It is not currently backed by a persistent index. The replay ledger is process-local and is not durable across restarts.
+The selector is a **lexical baseline**, not semantic search or BM25. It is not currently backed by a persistent index. The replay ledger is process-local and is not durable across restarts; replay does not execute side effects.
 
 ## Requirements
 
@@ -91,7 +91,7 @@ Do not compare numbers from different environments as if they were directly equi
 | Rust lexical retrieval baseline | Implemented as a prototype |
 | CLI demo | Implemented with embedded sample records |
 | Exact-allowlist policy gate | Implemented as an in-memory decision prototype; no external action execution |
-| Replay ledger | Implemented in memory; not durable and does not replay side effects |
+| Replay ledger | Implemented in memory; identity fields are trimmed before indexing; not durable and does not replay side effects |
 | Decision-to-audit wiring | Implemented; records decisions only |
 | Unit tests and formatting/build CI | Configured; inspect the latest GitHub Actions run for its result |
 | Synthetic retrieval benchmark | Added; results must be captured on a documented environment |
@@ -121,7 +121,7 @@ Do not compare numbers from different environments as if they were directly equi
 
 ## Progress log
 
-See [`POSTĘP.md`](POST%C4%98P.md) for the stage-by-stage record, decisions, and outstanding work.
+See [`POSTĘP.md`](POST%C5%98P.md) for the stage-by-stage record, decisions, and outstanding work.
 
 ## Disclaimer
 
