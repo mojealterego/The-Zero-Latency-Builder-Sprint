@@ -48,6 +48,19 @@ pub fn decide_and_record(
 mod tests {
     use super::*;
 
+    fn request<'a>(event_id: &'a str, key: &'a str) -> DecisionRequest<'a> {
+        DecisionRequest {
+            event_id,
+            idempotency_key: key,
+            action: "notes.search",
+            policy_version: "test-v1",
+            allowed_actions: &["notes.search"],
+            requires_approval: false,
+            approval_granted: false,
+            mode: ExecutionMode::DryRun,
+        }
+    }
+
     #[test]
     fn denied_request_is_audited_and_never_executed() {
         let mut ledger = ReplayLedger::default();
@@ -65,11 +78,9 @@ mod tests {
             },
         )
         .unwrap();
-
         assert_eq!(decision, Decision::DenyUnknownAction);
-        let events = ledger.replay();
-        assert_eq!(events.len(), 1);
-        assert_eq!(events[0].outcome, "deny_unknown_action");
+        assert_eq!(ledger.replay().len(), 1);
+        assert_eq!(ledger.replay()[0].outcome, "deny_unknown_action");
     }
 
     #[test]
@@ -91,5 +102,32 @@ mod tests {
         .unwrap();
         assert_eq!(decision, Decision::AllowLive);
         assert_eq!(ledger.replay()[0].outcome, "allow_live");
+    }
+
+    #[test]
+    fn dry_run_allow_is_recorded_without_claiming_execution() {
+        let mut ledger = ReplayLedger::default();
+        let decision = decide_and_record(&mut ledger, request("evt-dry", "key-dry")).unwrap();
+        assert_eq!(decision, Decision::AllowDryRun);
+        assert_eq!(ledger.replay()[0].outcome, "allow_dry_run");
+    }
+
+    #[test]
+    fn missing_approval_is_denied_and_audited() {
+        let mut ledger = ReplayLedger::default();
+        let mut req = request("evt-approval", "key-approval");
+        req.requires_approval = true;
+        let decision = decide_and_record(&mut ledger, req).unwrap();
+        assert_eq!(decision, Decision::DenyApprovalRequired);
+        assert_eq!(ledger.replay()[0].outcome, "deny_approval_required");
+    }
+
+    #[test]
+    fn duplicate_event_rejection_does_not_append_a_second_audit_record() {
+        let mut ledger = ReplayLedger::default();
+        decide_and_record(&mut ledger, request("evt-dup", "key-1")).unwrap();
+        let result = decide_and_record(&mut ledger, request("evt-dup", "key-2"));
+        assert_eq!(result, Err(RecordError::DuplicateEventId));
+        assert_eq!(ledger.len(), 1);
     }
 }
