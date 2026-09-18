@@ -90,28 +90,47 @@ mod tests {
         let mut ledger = ReplayLedger::default();
         ledger.record(event("e1", "k1")).unwrap();
         ledger.record(event("e2", "k2")).unwrap();
-        assert_eq!(ledger.replay().iter().map(|e| e.event_id.as_str()).collect::<Vec<_>>(), vec!["e1", "e2"]);
+        assert_eq!(
+            ledger
+                .replay()
+                .iter()
+                .map(|e| e.event_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["e1", "e2"]
+        );
     }
 
     #[test]
     fn rejects_duplicate_event_ids() {
         let mut ledger = ReplayLedger::default();
         ledger.record(event("e1", "k1")).unwrap();
-        assert_eq!(ledger.record(event("e1", "k2")), Err(RecordError::DuplicateEventId));
+        assert_eq!(
+            ledger.record(event("e1", "k2")),
+            Err(RecordError::DuplicateEventId)
+        );
     }
 
     #[test]
     fn rejects_idempotency_key_reuse_for_another_event() {
         let mut ledger = ReplayLedger::default();
         ledger.record(event("e1", "same-key")).unwrap();
-        assert_eq!(ledger.record(event("e2", "same-key")), Err(RecordError::IdempotencyConflict));
+        assert_eq!(
+            ledger.record(event("e2", "same-key")),
+            Err(RecordError::IdempotencyConflict)
+        );
     }
 
     #[test]
     fn rejects_empty_identifiers() {
         let mut ledger = ReplayLedger::default();
-        assert_eq!(ledger.record(event(" ", "k")), Err(RecordError::EmptyEventId));
-        assert_eq!(ledger.record(event("e", " ")), Err(RecordError::EmptyIdempotencyKey));
+        assert_eq!(
+            ledger.record(event(" ", "k")),
+            Err(RecordError::EmptyEventId)
+        );
+        assert_eq!(
+            ledger.record(event("e", " ")),
+            Err(RecordError::EmptyIdempotencyKey)
+        );
     }
 
     #[test]
@@ -120,8 +139,14 @@ mod tests {
         ledger.record(event(" e1 ", " key ")).unwrap();
         assert_eq!(ledger.replay()[0].event_id, "e1");
         assert_eq!(ledger.replay()[0].idempotency_key, "key");
-        assert_eq!(ledger.record(event("e1", "other")), Err(RecordError::DuplicateEventId));
-        assert_eq!(ledger.record(event("e2", "key")), Err(RecordError::IdempotencyConflict));
+        assert_eq!(
+            ledger.record(event("e1", "other")),
+            Err(RecordError::DuplicateEventId)
+        );
+        assert_eq!(
+            ledger.record(event("e2", "key")),
+            Err(RecordError::IdempotencyConflict)
+        );
         assert_eq!(ledger.len(), 1);
     }
 }
